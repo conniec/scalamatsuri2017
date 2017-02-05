@@ -1,0 +1,240 @@
+| \gReducing Boilerplate and Combining Effects: 
+| \gA Monad Transformer Example
+
+| Scala Matsuri - Feb 25th, 2017
+
+
+| Connie Chen - \b@coni
+---
+| \gHello
+
+* @coni
+* Data Platform team @ Twilio
+@ http://github.com/conniec
+
+---
+| \gWhat are Monad transformers?
+
+* Monad transformers allow different monads to compose
+* Combine effects of monads to great a \bSUPER MONAD
+* Eg. Future[Option], Future[Either], ReaderT[Option]
+* In this example, we will use the Cats library...
+
+---
+
+\g Future[Either[A, B]] turns into EitherT[Future, A, B]
+
+\g Future[Option[A]] turns into OptionT[Future, A]
+
+---
+
+\g Example: Making coffee!
+
+--
+\b Step 1. Grind the beans
+
+--
+```
+import scala.concurrent.Future
+import cats.data.OptionT
+import cats.implicits._
+import scala.concurrent.ExecutionContext.Implicits.global
+
+case class Beans(fresh: Boolean = true)
+case class Grounds(success: Boolean)
+class GroundBeansException(s: String) extends Exception(s: String)
+```
+--
+
+```
+def groundBeans(beans: Beans, clumsy: Boolean = false): Future[Option[Grounds]] = {
+  if (clumsy) {
+    Future.failed(new GroundBeansException("We are bad at grinding"))
+  } else if (beans.fresh) {
+    Future.successful(Option(Grounds(success=true)))
+  } else {
+    Future.successful(None)
+  }
+}
+```
+
+---
+\b Step 2. Boil hot water
+--
+
+```
+case class Kettle(filled: Boolean = true)
+case class Water(success: Boolean)
+case class Coffee(delicious: Boolean)
+class HotWaterException(s: String) extends Exception(s: String)
+
+--
+def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] = {
+  if (clumsy) {
+    Future.failed(new HotWaterException("ouch spill!"))
+  } else if (kettle.filled) {
+    Future.successful(Option(Water(success=true)))
+  } else {
+    Future.successful(None)
+  }
+}
+```
+--
+
+Three different kind of results
+* Value found 
+* Value not found 
+* Future failed 
+
+---
+\b Step 3. Combine water and coffee (it's a pourover)
+--
+
+```
+def makingCoffee(grounds: Grounds, water: Water): Future[Coffee] = {
+  println(s"Making coffee with... $grounds and $water")
+  if (grounds.success && water.success) {
+    Future.successful(Coffee(delicious=true))
+  } else {
+    Future.failed(new Exception("Failed to make coffee"))
+  }
+}
+```
+
+---
+
+\g Without Monad transformers, success scenario
+
+```
+val coffeeFut = for {
+  beans <- groundBeans(Beans(fresh=true))
+  hotWater <- getHotWater(Kettle(filled=true))
+  beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
+  waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
+  result <- makingCoffee(beansResult, waterResult)
+} yield Option(s"$result")
+
+coffeeFut.onSuccess {
+  case Some(s) => println(s"SUCCESS: $s")
+  case None => println("No coffee found?")
+}
+
+coffeeFut.onFailure {
+  case x => println(s"FAIL: $x")
+}
+```
+
+---
+\g With Monad transformers, success scenario
+
+```
+val coffeeFutMonadT = for {
+  beans <- OptionT(groundBeans(Beans(fresh=true)))
+  hotWater <- OptionT(getHotWater(Kettle(filled=true)))
+  result <- OptionT.liftF(makingCoffee(beans, hotWater))
+} yield s"$result"
+
+coffeeFutMonadT.value.onSuccess {
+  case Some(s) => println(s"SUCCESS: $s")
+  case None => println("No coffee found?")
+}
+
+coffeeFutMonadT.value.onFailure {
+  case x => println(s"FAIL: $x")
+}
+```
+
+---
+
+\g Helper functions on OptionT
+
+\b `fromOption` gives you an OptionT from Option
+Internally, it is wrapping your option in a Future.successful()
+
+
+\b `liftF` gives you an OptionT from Future
+Internally, it is mapping on your Future and wrapping it in a Some()
+
+---
+
+\g Without Monad transformers, failure scenario
+
+```
+val coffeeFut3 = for {
+  beans <- groundBeans(Beans(fresh=false))
+  hotWater <- getHotWater(Kettle(filled=true))
+  beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
+  waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
+  result <- makingCoffee(beansResult, waterResult)
+} yield Option(s"$result")
+
+coffeeFut3.onSuccess {
+  case Some(s) => println(s"SUCCESS: $s")
+  case None => println("No coffee found?")
+}
+
+coffeeFut3.onFailure {
+  case x => println(s"FAIL: $x")
+}
+```
+
+---
+\g With Monad transformers, failure scenario
+
+```
+val coffeeFut2 = for {
+  beans <- OptionT(groundBeans(Beans(fresh=false)))
+  hotWater <- OptionT(getHotWater(Kettle(filled=true)))
+  result <- OptionT.liftF(makingCoffee(beans, hotWater))
+} yield s"$result"
+
+coffeeFut2.value.onSuccess {
+  case Some(s) => println(s"SUCCESS: $s")
+  case None => println("No coffee found?")
+}
+
+coffeeFut2.value.onFailure {
+  case x => println(s"FAIL: $x")
+}
+```
+---
+
+\g With Monad transformers, failure scenario with exception
+
+```
+val coffeeFut2 = for {
+  beans <- OptionT(groundBeans(Beans(fresh=true)))
+  hotWater <- OptionT(getHotWater(Kettle(filled=true), clumsy=true))
+  result <- OptionT.liftF(makingCoffee(beans, hotWater))
+} yield s"$result"
+
+coffeeFut2.value.onSuccess {
+  case Some(s) => println(s"SUCCESS: $s")
+  case None => println("No coffee found?")
+}
+
+coffeeFut2.value.onFailure {
+  case x => println(s"FAIL: $x")
+}
+```
+---
+
+\g What did we learn?
+
+* Use monad transformers to short circut your chained monads
+--
+* Instead of unwrapping layers of monads, monad transformers results in a new monad to flatMap with
+--
+* Reduce layers of x.map( y => y.map ( ... )) to just x.(map ( y => ...))
+
+---
+\g What's next?
+
+---
+| \rThank you
+
+
+| Connie Chen - \b@coni
+| Twilio
+
+| We're hiring!
