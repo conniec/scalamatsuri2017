@@ -41,39 +41,17 @@ import cats.implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Beans(fresh: Boolean = true)
-case class Grounds(success: Boolean)
+case class Grounds()
 class GroundBeansException(s: String) extends Exception(s: String)
 ```
 --
 
 ```
-def groundBeans(beans: Beans, clumsy: Boolean = false): Future[Option[Grounds]] = {
+def grindFreshBeans(beans: Beans, clumsy: Boolean = false): Future[Option[Grounds]] = {
   if (clumsy) {
     Future.failed(new GroundBeansException("We are bad at grinding"))
   } else if (beans.fresh) {
     Future.successful(Option(Grounds(success=true)))
-  } else {
-    Future.successful(None)
-  }
-}
-```
-
----
-\b Step 2. Boil hot water
---
-
-```
-case class Kettle(filled: Boolean = true)
-case class Water(success: Boolean)
-case class Coffee(delicious: Boolean)
-class HotWaterException(s: String) extends Exception(s: String)
-
---
-def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] = {
-  if (clumsy) {
-    Future.failed(new HotWaterException("ouch spill!"))
-  } else if (kettle.filled) {
-    Future.successful(Option(Water(success=true)))
   } else {
     Future.successful(None)
   }
@@ -85,6 +63,28 @@ Three different kind of results
 * Value found 
 * Value not found 
 * Future failed 
+
+---
+\b Step 2. Boil hot water
+--
+
+```
+case class Kettle(filled: Boolean = true)
+case class Water()
+case class Coffee(delicious: Boolean)
+class HotWaterException(s: String) extends Exception(s: String)
+
+--
+def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] = {
+  if (clumsy) {
+    Future.failed(new HotWaterException("Ouch spilled that water!"))
+  } else if (kettle.filled) {
+    Future.successful(Option(Water(success=true)))
+  } else {
+    Future.successful(None)
+  }
+}
+```
 
 ---
 \b Step 3. Combine water and coffee (it's a pourover)
@@ -106,8 +106,16 @@ def makingCoffee(grounds: Grounds, water: Water): Future[Coffee] = {
 \g Without Monad transformers, success scenario
 
 ```
+
+// Step 1. def grindFreshBeans(beans: Beans, clumsy: Boolean = false): Future[Option[Grounds]]
+
+// Step 2. def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]]
+
+// Step 3. def makingCoffee(grounds: Grounds, water: Water): Future[Coffee]
+
+
 val coffeeFut = for {
-  beans <- groundBeans(Beans(fresh=true))
+  beans <- grindFreshBeans(Beans(fresh=true))
   hotWater <- getHotWater(Kettle(filled=true))
   beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
   waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
@@ -129,7 +137,7 @@ coffeeFut.onFailure {
 
 ```
 val coffeeFutMonadT = for {
-  beans <- OptionT(groundBeans(Beans(fresh=true)))
+  beans <- OptionT(grindFreshBeans(Beans(fresh=true)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true)))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
 } yield s"$result"
@@ -161,7 +169,7 @@ Internally, it is mapping on your Future and wrapping it in a Some()
 
 ```
 val coffeeFut3 = for {
-  beans <- groundBeans(Beans(fresh=false))
+  beans <- grindFreshBeans(Beans(fresh=false))
   hotWater <- getHotWater(Kettle(filled=true))
   beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
   waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
@@ -183,7 +191,7 @@ coffeeFut3.onFailure {
 
 ```
 val coffeeFut2 = for {
-  beans <- OptionT(groundBeans(Beans(fresh=false)))
+  beans <- OptionT(grindFreshBeans(Beans(fresh=false)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true)))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
 } yield s"$result"
@@ -203,7 +211,7 @@ coffeeFut2.value.onFailure {
 
 ```
 val coffeeFut2 = for {
-  beans <- OptionT(groundBeans(Beans(fresh=true)))
+  beans <- OptionT(grindFreshBeans(Beans(fresh=true)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true), clumsy=true))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
 } yield s"$result"
