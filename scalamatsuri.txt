@@ -230,6 +230,9 @@ coffeeFut2.value.onFailure {
 ---
 \g What's next?
 
+* Many other types of monad transformers: ReaderT, WriterT, EitherT, StateT
+* Since monad transformers give you a monad as a result-- you can stack them too! 
+
 ---
 | \rThank you
 
