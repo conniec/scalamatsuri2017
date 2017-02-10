@@ -51,7 +51,7 @@ def grindFreshBeans(beans: Beans, clumsy: Boolean = false): Future[Option[Ground
   if (clumsy) {
     Future.failed(new GroundBeansException("We are bad at grinding"))
   } else if (beans.fresh) {
-    Future.successful(Option(Grounds(success=true)))
+    Future.successful(Option(Grounds()))
   } else {
     Future.successful(None)
   }
@@ -79,7 +79,7 @@ def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] 
   if (clumsy) {
     Future.failed(new HotWaterException("Ouch spilled that water!"))
   } else if (kettle.filled) {
-    Future.successful(Option(Water(success=true)))
+    Future.successful(Option(Water()))
   } else {
     Future.successful(None)
   }
@@ -93,11 +93,7 @@ def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] 
 ```
 def makingCoffee(grounds: Grounds, water: Water): Future[Coffee] = {
   println(s"Making coffee with... $grounds and $water")
-  if (grounds.success && water.success) {
-    Future.successful(Coffee(delicious=true))
-  } else {
-    Future.failed(new Exception("Failed to make coffee"))
-  }
+  Future.successful(Coffee(delicious=true))
 }
 ```
 
