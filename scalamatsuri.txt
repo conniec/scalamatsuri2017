@@ -5,6 +5,9 @@
 
 
 | Connie Chen - \b@coni
+
+/
+ボイラープレートの削減と作用の組み合わせ: 例で見るモナド変換子
 ---
 | \gHello
 
@@ -20,6 +23,9 @@
 * Eg. Future[Option], Future[Either], ReaderT[Option]
 * In this example, we will use the Cats library...
 
+/
+モナド変換子は異なるモナドの合成を可能とする
+
 ---
 
 \g Future[Either[A, B]] turns into EitherT[Future, A, B]
@@ -32,6 +38,7 @@
 
 --
 \b Step 1. Grind the beans
+ ステップ 1. コーヒー豆を挽く
 
 --
 ```
@@ -64,8 +71,13 @@ Three different kind of results
 * Value not found 
 * Future failed 
 
+/
+値が見つかる、値が見つからない、Futureの失敗という 3種類の結果
+
 ---
 \b Step 2. Boil hot water
+ ステップ 2. お湯を沸かす
+
 --
 
 ```
@@ -88,6 +100,7 @@ def getHotWater(kettle: Kettle, clumsy: Boolean = false): Future[Option[Water]] 
 
 ---
 \b Step 3. Combine water and coffee (it's a pourover)
+  ステップ 2. お湯とコーヒー豆を組み合わせる (ハンドドリップです)
 --
 
 ```
@@ -128,6 +141,9 @@ coffeeFut.onFailure {
 }
 ```
 
+/
+モナド変換子を使わない場合の成功シナリオ
+
 ---
 \g With Monad transformers, success scenario
 
@@ -148,6 +164,9 @@ coffeeFutMonadT.value.onFailure {
 }
 ```
 
+/
+モナド変換子を使った場合の成功シナリオ
+
 ---
 
 \g Helper functions on OptionT
@@ -158,6 +177,9 @@ Internally, it is wrapping your option in a Future.successful()
 
 \b `liftF` gives you an OptionT from Future
 Internally, it is mapping on your Future and wrapping it in a Some()
+
+/
+OptionT のヘルパー関数
 
 ---
 
@@ -182,6 +204,9 @@ coffeeFut3.onFailure {
 }
 ```
 
+/
+モナド変換子を使わない場合の失敗シナリオ
+
 ---
 \g With Monad transformers, failure scenario
 
@@ -201,6 +226,10 @@ coffeeFut2.value.onFailure {
   case x => println(s"FAIL: $x")
 }
 ```
+
+/
+モナド変換子を使った場合の失敗シナリオ
+
 ---
 
 \g With Monad transformers, failure scenario with exception
@@ -221,21 +250,33 @@ coffeeFut2.value.onFailure {
   case x => println(s"FAIL: $x")
 }
 ```
+
+/
+モナド変換子を使った場合の例外を投げる失敗シナリオ
+
 ---
 
 \g What did we learn?
 
 * Use monad transformers to short circut your chained monads
+  連鎖したモナドをショートさせるのにモナド変換子を使う
+
 --
 * Instead of unwrapping layers of monads, monad transformers results in a new monad to flatMap with
+  入れ子になったモナドを分解する代わりに、モナド変換子は flatMap 可能な新しいモナドを作る
+
 --
 * Reduce layers of x.map( y => y.map ( ... )) to just x.(map ( y => ...))
+  x.map ( y => y.map ( ... ) ) と入れ子になった呼び出しも一つの map で済むようになる
 
 ---
 \g What's next?
 
 * Many other types of monad transformers: ReaderT, WriterT, EitherT, StateT
 * Since monad transformers give you a monad as a result-- you can stack them too! 
+
+/
+OptionT 以外にも多くのモナド変換子がある。複数積み上げることも可能。
 
 ---
 | \rThank you
