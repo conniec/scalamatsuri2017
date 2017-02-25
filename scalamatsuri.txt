@@ -129,7 +129,7 @@ val coffeeFut = for {
   beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
   waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
   result <- makingCoffee(beansResult, waterResult)
-} yield Option(s"$result")
+} yield Option(result)
 
 coffeeFut.onSuccess {
   case Some(s) => println(s"SUCCESS: $s")
@@ -152,7 +152,7 @@ val coffeeFutMonadT = for {
   beans <- OptionT(grindFreshBeans(Beans(fresh=true)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true)))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
-} yield s"$result"
+} yield result
 
 coffeeFutMonadT.value.onSuccess {
   case Some(s) => println(s"SUCCESS: $s")
@@ -192,7 +192,7 @@ val coffeeFut3 = for {
   beansResult = beans.getOrElse(throw new Exception("Beans result errored. "))
   waterResult = hotWater.getOrElse(throw new Exception("Water result errored. "))
   result <- makingCoffee(beansResult, waterResult)
-} yield Option(s"$result")
+} yield Option(result)
 
 coffeeFut3.onSuccess {
   case Some(s) => println(s"SUCCESS: $s")
@@ -215,7 +215,7 @@ val coffeeFut2 = for {
   beans <- OptionT(grindFreshBeans(Beans(fresh=false)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true)))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
-} yield s"$result"
+} yield result
 
 coffeeFut2.value.onSuccess {
   case Some(s) => println(s"SUCCESS: $s")
@@ -239,7 +239,7 @@ val coffeeFut2 = for {
   beans <- OptionT(grindFreshBeans(Beans(fresh=true)))
   hotWater <- OptionT(getHotWater(Kettle(filled=true), clumsy=true))
   result <- OptionT.liftF(makingCoffee(beans, hotWater))
-} yield s"$result"
+} yield result
 
 coffeeFut2.value.onSuccess {
   case Some(s) => println(s"SUCCESS: $s")
