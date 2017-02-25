@@ -1,5 +1,5 @@
 
-https://www.slideshare.net/ConnieChen12/reducing-boilerplate-and-combining-effects-a-monad-transformer-example
+Slides: https://www.slideshare.net/ConnieChen12/reducing-boilerplate-and-combining-effects-a-monad-transformer-example
 
 To run the presentation, open up `sbt console` within the project. 
 
